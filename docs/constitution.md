@@ -1,6 +1,6 @@
-docs/constitution.md v1.2
+docs/constitution.md v1.3
 
-最後更新：2026-04-15 | 版本：v1.2（整合 super-engine / weblm-driver）
+最後更新：2026-04-15 | 版本：v1.3（混合借力——FastMCP + 官方 Filesystem Server）
 倉庫：https://github.com/RYN6666999/HMM
 
 1. 使命與願景
@@ -16,55 +16,59 @@ docs/constitution.md v1.2
 - Spec 驅動開發：先寫規格再寫程式碼，杜絕 vibe coding。
 - 零成本優先：預設全部免費（Browser-in-the-Loop + Ollama），付費為加速選項。
 - 複用優先：已驗證的模組直接引入，不重複造輪子。
+- 借力最大化：優先採用成熟開源方案，只在核心差異化功能上自建。（v1.3 新增）
 
 2. 系統架構
 
 2.1 三層架構
-
-┌─────────────────────────────────────────────┐
-│              Agent Layer                     │
-│  Hermes ∙ Claude Code ∙ OpenCode ∙ Gemini   │
-└──────────────────┬──────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│                Agent Layer                       │
+│  Hermes ∙ Claude Code ∙ OpenCode ∙ Gemini        │
+└──────────────────┬──────────────────────────────┘
                    │ MCP Protocol (JSON-RPC)
-┌──────────────────▼──────────────────────────┐
-│           MCP Universal Server               │
-│  ┌──────────┐ ┌───────────┐ ┌─────────────┐ │
-│  │  Golem   │ │  Google   │ │  External   │ │
-│  │  Engine  │ │  Tools    │ │  Tools      │ │
-│  └──────────┘ └───────────┘ └─────────────┘ │
-│       ▲                                      │
-│       │ npm dependency                       │
-│  ┌────┴─────┐                                │
-│  │ weblm-   │ ← super-engine repo            │
-│  │ driver   │   (v0.1.5, 134 tests)          │
-│  └──────────┘                                │
-└──────────────────┬──────────────────────────┘
+┌──────────────────▼──────────────────────────────┐
+│           MCP Universal Server                   │
+│  ┌──────────────────────────────────────────┐    │
+│  │  FastMCP 框架（v1.3 新增）                │    │
+│  │  Tool 註冊 · JSON-RPC · Session · Health  │    │
+│  └──────────────────────────────────────────┘    │
+│  ┌──────────┐ ┌───────────┐ ┌─────────────────┐ │
+│  │  Golem   │ │  Google   │ │  External       │ │
+│  │  Engine  │ │  Tools    │ │  Tools          │ │
+│  │ (自建)   │ │           │ │                 │ │
+│  └──────────┘ └───────────┘ └─────────────────┘ │
+│       ▲               ▲                          │
+│       │ npm dep       │ npm dep                  │
+│  ┌────┴─────┐    ┌────┴──────────────────┐       │
+│  │ weblm-   │    │ @modelcontextprotocol │       │
+│  │ driver   │    │ /server-filesystem    │       │
+│  │ (v0.1.5) │    │ （v1.3 新增）          │       │
+│  └──────────┘    └───────────────────────┘       │
+└──────────────────┬──────────────────────────────┘
                    │
-┌──────────────────▼──────────────────────────┐
-│           Infrastructure                     │
-│  GitHub CI ∙ Docker ∙ Firebase (optional)    │
-└─────────────────────────────────────────────┘
-
-2.2 四大閉環架構
-
+┌──────────────────▼──────────────────────────────┐
+│           Infrastructure                         │
+│  GitHub CI ∙ Docker ∙ Firebase (optional)        │
+└─────────────────────────────────────────────────┘
+2.2 四大閉環架構mermaid
 flowchart TB
     NLM["🔬 NotebookLM"] --> SPEC["📋 Spec Kit"]
     SPEC --> STITCH["🎨 Stitch SDK"]
     STITCH --> CODE["⌨️ Claude Code / OpenCode"]
-    CODE --> MCP["🔌 MCP Server Core15 支 Tool"]
+    CODE --> MCP["🔌 FastMCP Server\n15 支 Tool"]
     MCP --> HERMES["🤖 Hermes Agent"]
     HERMES --> USER["👤 使用者"]
     CODE --> GH["📦 GitHub CI/CD"]
 
-    MCP --- MEMORY["🧠 Pyramid Memory3 namespaces"]
-    MCP --- BITL["🌐 weblm-driver v0.1.5Browser-in-the-Loop"]
+    MCP --- MEMORY["🧠 Pyramid Memory\n3 namespaces\n（LanceDB 自建）"]
+    MCP --- BITL["🌐 weblm-driver v0.1.5\nBrowser-in-the-Loop"]
     MCP --- GOOGLE["☁️ Google Tools"]
     MCP --- CLI["🖥️ CLI-Anything"]
-    MCP --- FS["📁 檔案系統"]
+    MCP --- FS["📁 @mcp/server-filesystem\n（官方套件）"]
 
     %% 閉環 1：學習迴圈
-    HERMES -->|"經驗存入namespace: task_experience"| MEMORY
-    MEMORY -->|"經驗召回memory_search + token_count"| MCP
+    HERMES -->|"經驗存入\nnamespace: task_experience"| MEMORY
+    MEMORY -->|"經驗召回\nmemory_search + token_count"| MCP
 
     %% 閉環 2：設計迭代
     CODE -->|"UI 不滿意 → screen.edit()"| STITCH
@@ -75,20 +79,19 @@ flowchart TB
 
     %% 閉環 4：知識迴圈
     HERMES -->|"未知領域 → free_notebooklm"| NLM
-    NLM -->|"研究結果存入namespace: research_knowledge"| MEMORY
+    NLM -->|"研究結果存入\nnamespace: research_knowledge"| MEMORY
 
     %% 閉環 2 ↔ 3 同步檢查
     GH -->|"design.md 變更 → sync_check"| SPEC
     GH -->|"spec-*.md 變更 → sync_check"| STITCH
 
     %% 三層 Fallback
-    BITL -->|"四級恢復皆失敗"| API["⚡ Gemini API免費額度"]
-    API -->|"失敗"| OLLAMA["🏠 Ollama本地模型"]
+    BITL -->|"四級恢復皆失敗"| API["⚡ Gemini API\n免費額度"]
+    API -->|"失敗"| OLLAMA["🏠 Ollama\n本地模型"]
 
     %% Context Budget
-    MCP -->|"呼叫 LLM 前"| NS["🧮 NeuroShuntercontext budget 管理"]
+    MCP -->|"呼叫 LLM 前"| NS["🧮 NeuroShunter\ncontext budget 管理"]
     NS -->|"裁剪後的 context"| BITL
-
 閉環 1 — 學習迴圈（Learning Loop）
 觸發條件：Hermes 完成任何任務。流程：Hermes 執行任務 → 結果 + metadata 存入 Pyramid Memory（namespace: task_experience） → 未來相似任務時 memory_search 召回經驗 → 經驗附帶 token_count 傳入 NeuroShunter → NeuroShunter 按 context budget 裁剪後注入 LLM prompt → 輸出品質提升。壓縮機制按 namespace 分別執行。頻率：每次任務自動觸發。預期效益：約 40% 效率提升。
 
@@ -101,36 +104,54 @@ flowchart TB
 閉環 4 — 知識迴圈（Knowledge Loop）
 觸發條件：Hermes 遇到未知領域。流程：free_notebooklm → 研究摘要 → memory_store（namespace: research_knowledge）。頻率：低頻但高價值。
 
+2.3 借力策略矩陣（v1.3 新增）
+
+本專案遵循「核心自建、基建借力」原則。以下為各模組的 build vs buy 決策：
+
+| 模組 | 決策 | 方案 | 理由 |
+|------|------|------|------|
+| MCP Server 框架 | 借力 | FastMCP (npm) | JSON-RPC 路由、Tool 註冊、Session、Health、Error 格式化全部內建，省去 index.js 手寫 |
+| 檔案系統工具 | 借力 | @modelcontextprotocol/server-filesystem (npm) | Anthropic 官方維護，內建 read/write/list/search/move + allowed-path sandbox |
+| Browser-in-the-Loop | 借力 | weblm-driver (GitHub dep) | 自有 super-engine repo，134 tests，四級恢復 |
+| Pyramid Memory | 自建 | LanceDB + 自建壓縮 | 核心差異化——分層壓縮（即時→日→週→月→年）+ namespace 分區，市面方案無法完整替代 |
+| NeuroShunter | 自建 | 自行實作 | 核心差異化——context budget 管理，參考 SimpleMem 論文演算法 |
+| Spec 工具 | 薄 wrapper | 委託 filesystem server + git 呼叫 | 底層讀寫借力，上層 section 解析 + git commit 自寫 |
+| sync_check | 自建 | 純邏輯比對 | 專案特有邏輯，無通用方案 |
+| Fallback 調度 | 自建 | browser-loop.js | 三層 fallback 調度為專案特有邏輯 |
+
 3. MCP Tool Registry
 
 3.1 優先級總表
 
-| 優先級 | Tool 名稱 | 說明 | 核心引擎 |
-|--------|-----------|------|----------|
-| P0 | free_llm_query | 免費 LLM 查詢（三層 fallback） | weblm-driver + Gemini API + Ollama |
-| P0 | memory_store | 儲存記憶（含 namespace） | Pyramid Memory |
-| P0 | memory_search | 搜尋記憶（含 token_count） | Pyramid Memory |
-| P1 | memory_compress | 壓縮記憶（按 namespace 分別） | Pyramid Memory |
-| P1 | parse_protocol | 協議解析 + Context 預算管理 | NeuroShunter |
-| P1 | free_notebooklm | 免費 NotebookLM 研究 | CLI-Anything-Web |
-| P1 | spec_read | 讀取並解析 spec 文件 | 檔案系統 |
-| P1 | spec_update | 更新 spec 並自動 commit | 檔案系統 + Git |
-| P1 | file_read | 讀取允許路徑的檔案 | 檔案系統 |
-| P1 | file_write | 寫入允許路徑的檔案 | 檔案系統 |
-| P1 | file_list | 列出目錄內容 | 檔案系統 |
-| P1 | sync_check | 比對 design.md 與 spec 一致性 | 檔案系統 |
-| P2 | desktop_control | 桌面操控 | Playwright |
-| P2 | design_generate | UI 設計生成 | Stitch SDK |
-| P2 | code_generate | 程式碼生成 | Gemini API / OpenCode |
+| 優先級 | Tool 名稱 | 說明 | 核心引擎 | 來源 |
+|--------|-----------|------|----------|------|
+| P0 | free_llm_query | 免費 LLM 查詢（三層 fallback） | weblm-driver + Gemini API + Ollama | 自建 |
+| P0 | memory_store | 儲存記憶（含 namespace） | Pyramid Memory (LanceDB) | 自建 |
+| P0 | memory_search | 搜尋記憶（含 token_count） | Pyramid Memory (LanceDB) | 自建 |
+| P1 | memory_compress | 壓縮記憶（按 namespace 分別） | Pyramid Memory (LanceDB) | 自建 |
+| P1 | parse_protocol | 協議解析 + Context 預算管理 | NeuroShunter | 自建 |
+| P1 | free_notebooklm | 免費 NotebookLM 研究 | CLI-Anything-Web | 自建 |
+| P1 | spec_read | 讀取並解析 spec 文件 | filesystem server + wrapper | 混合 |
+| P1 | spec_update | 更新 spec 並自動 commit | filesystem server + git + wrapper | 混合 |
+| P1 | file_read | 讀取允許路徑的檔案 | @modelcontextprotocol/server-filesystem | 借力 |
+| P1 | file_write | 寫入允許路徑的檔案 | @modelcontextprotocol/server-filesystem | 借力 |
+| P1 | file_list | 列出目錄內容 | @modelcontextprotocol/server-filesystem | 借力 |
+| P1 | sync_check | 比對 design.md 與 spec 一致性 | 自建純邏輯 | 自建 |
+| P2 | desktop_control | 桌面操控 | Playwright | 自建 |
+| P2 | design_generate | UI 設計生成 | Stitch SDK | 自建 |
+| P2 | code_generate | 程式碼生成 | Gemini API / OpenCode | 自建 |
 
 3.2 Tool JSON Schema
 
-完整 JSON Schema 定義見 docs/spec-mcp-server.md 第 4-6 章。
+完整 JSON Schema 定義見 docs/spec-mcp-server.md。
 
 3.3 安全性設定
 
-所有 file_* 工具在 mcp-config.json 中設定允許路徑：
+file_* 工具由 @modelcontextprotocol/server-filesystem 提供原生 allowed-path sandbox。啟動時透過命令列參數指定允許路徑：
+npx @modelcontextprotocol/server-filesystem ./docs ./mcp-server ./design ./knowledge ./agent-config ./scripts ./src ./packages ./test
+額外的 denied patterns（.env、.key、.pem、.git/）由 security-manager.js 在 wrapper 層加入。
 
+mcp-config.json 中的安全設定：json
 {
   "file_security": {
     "allowed_paths": [
@@ -143,7 +164,6 @@ flowchart TB
     "max_file_size_bytes": 1048576
   }
 }
-
 4. 架構決策記錄（ADR）
 
 ADR-001：混合架構 — Golem Engine + Hermes Agent
@@ -158,26 +178,21 @@ ADR-001：混合架構 — Golem Engine + Hermes Agent
 
 風險與緩解：
 
-風險 A — Browser-in-the-Loop 延遲與脆弱性：weblm-driver 已內建四級恢復（refresh → reopen → restart → rebuild）與 reason-aware 路由。在此之上，free_llm_query 再疊加兩層 fallback（Gemini API → Ollama），形成總共六級容錯。
-
-風險 B — Context window 溢出：parse_protocol（NeuroShunter）內建 context budget 管理，按優先級分配 token。memory_search 回傳 token_count 供計算。
-
-**風險 C —「clone 到可用   → 功能開發
+- 風險 A — Browser-in-the-Loop 延遲與脆弱性：weblm-driver 已內建四級恢復（refresh → reopen → restart → rebuild）與 reason-aware 路由。在此之上，free_llm_query 再疊加兩層 fallback（Gemini API → Ollama），形成總共六級容錯。
+- 風險 B — Context window 溢出：parse_protocol（NeuroShunter）內建 context budget 管理，按優先級分配 token。memory_search 回傳 token_count 供計算。
+- **風險 C —「clone 到可用   → 功能開發
 spec/     → 規格撰寫
 hotfix/    → 緊急修復
-
 6.2 Commit 訊息格式
-
 (): 
 
 type: feat | fix | docs | spec | design | refactor | test | ci | chore
-scope: mcp-server | golem-engine | dashboard | memory | hermes | stitch | ci | weblm
-
+scope: mcp-server | golem-engine | dashboard | memory | hermes | stitch | ci | weblm | fastmcp | filesystem
 範例：
+feat(mcp-server): migrate to FastMCP framework
+feat(mcp-server): integrate @modelcontextprotocol/server-filesystem
 feat(golem-engine): integrate weblm-driver as browser-loop backend
-feat(mcp-server): implement free_llm_query with 3-tier fallback
-docs(constitution): v1.2 add ADR-005 weblm-driver integration
-
+docs(constitution): v1.3 mixed leverage — FastMCP + filesystem server
 6.3 CI Pipeline
 
 每次 push 或 PR 到 main / develop：npm ci → lint → test:unit → test:integration → arch:check → sync_check（Phase 2 後啟用）。
@@ -186,7 +201,7 @@ docs(constitution): v1.2 add ADR-005 weblm-driver integration
 
 | 項目 | 指標 |
 |------|------|
-| 啟動時間（Docker） |  80%（weblm-driver 自帶 134 個測試另計） |
+| 啟動時間（Docker） |  80%（weblm-driver 134 測試另計、filesystem server 測試另計） |
 | 長期記憶容量 | ≈ 3 MB / 50 年 |
 | 文件語言 | 繁體中文（主）+ 英文 |
 | 授權 | MIT |
@@ -194,38 +209,41 @@ docs(constitution): v1.2 add ADR-005 weblm-driver integration
 
 8. 路線圖
 
-Phase 0 — 基礎建設
+Phase 0 — 基礎建設 ✅
 - [x] Golem 引擎拆解與移植
 - [x] MCP 萬用接口基礎實作
 - [x] GitHub repo 建立
-- [x] constitution.md v1.0
-- [x] system-flow.md v1.0
+- [x] constitution.md v1.0 → v1.1 → v1.2 → v1.3
+- [x] system-flow.md v1.0 → v1.1 → v1.2
+- [x] spec-mcp-server.md v1.0 → v1.1
 - [x] NotebookLM 架構審查
-- [x] constitution.md v1.1（NotebookLM 修正）
-- [x] system-flow.md v1.1
-- [x] spec-mcp-server.md v1.0
 - [x] 發現 super-engine 可複用，更新架構
-- [x] constitution.md v1.2 ← 目前此處
+- [x] 借力分析——選定混合借力策略（FastMCP + filesystem server）
 
 Phase 1 — 規格撰寫
 - [x] docs/spec-mcp-server.md v1.0
-- [ ] docs/spec-mcp-server.md v1.1（整合 weblm-driver）← 下一步
+- [x] docs/spec-mcp-server.md v1.1（整合 weblm-driver）
+- [ ] docs/spec-mcp-server.md v1.2（整合 FastMCP + filesystem server）← 下一步
+- [ ] system-flow.md v1.3（同步更新）
 - [ ] Spec Kit 初始化（有電腦時）
 
 Phase 2 — UI 設計
 - [ ] Stitch Dashboard 設計
 - [ ] design/design.md 匯出
 
-Phase 3 — MCP Server Core 實作（~21 小時，省 7 小時）
-- [ ] 目錄結構 + mcp-config.json
-- [ ] security-manager.js
-- [ ] memory_store / memory_search / memory_compress
-- [ ] browser-loop.js（封裝 weblm-driver + 三層 fallback）← 省 3 小時
-- [ ] neuro-shunter.js
-- [ ] file tools + spec tools + sync_check
-- [ ] index.js 主入口
-- [ ] 測試（weblm-driver 134 測試另計）← 省 3 小時
-- [ ] Dockerfile 初版
+Phase 3 — MCP Server Core 實作（~14 小時，總計省 14 小時 / 50%）
+- [ ] FastMCP 初始化 + mcp-config.json（0.25h）
+- [ ] security-manager.ts — denied-pattern 補充（0.5h）
+- [ ] pyramid-memory.ts — memory_store / memory_search / memory_compress（6h，自建核心）
+- [ ] browser-loop.ts — weblm-driver + 三層 fallback（1h）
+- [ ] API fallback + Ollama fallback（1h）
+- [ ] neuro-shunter.ts — context budget（2h，自建核心）
+- [ ] spec-read.ts / spec-update.ts — filesystem proxy + git（1h）
+- [ ] sync-check.ts — 純邏輯比對（0.5h）
+- [ ] 測試（1h，核心模組；借力套件自帶測試另計）
+- [ ] Dockerfile + docker-compose.yml（0.75h）
+- [ ] file-read / file-write / file-list → 已由 filesystem server 取代（0h）
+- [ ] index.js 手寫 JSON-RPC → 已由 FastMCP 取代（0h）
 
 Phase 4 — Google 工具鏈整合
 - [ ] design_generate / free_notebooklm / code_generate / desktop_control
@@ -251,7 +269,6 @@ Phase 6 — 開源釋出
 | 合計 | $0/月 | $24-51/月 |
 
 10. 文件層級與衝突規則
-
 constitution.md（最高層級）
   ├── system-flow.md
   ├── spec-*.md
@@ -259,7 +276,6 @@ constitution.md（最高層級）
   ├── CLAUDE.md
   ├── SKILL.md
   └── README.md
-
 衝突時以 constitution.md 為準。更新需 PR 審查並更新版本號。
 
 11. 詞彙表
@@ -267,10 +283,12 @@ constitution.md（最高層級）
 | 術語 | 說明 |
 |------|------|
 | MCP | Model Context Protocol — Agent 與工具間的通用通訊協議 |
+| FastMCP | TypeScript MCP server 框架（npm: fastmcp），提供 Tool 註冊、Session、Health 等基建 |
+| @modelcontextprotocol/server-filesystem | Anthropic 官方 MCP filesystem server，提供檔案讀寫、目錄操作、allowed-path sandbox |
 | weblm-driver | super-engine repo 的 npm 套件名，提供 Browser-in-the-Loop 驅動 |
 | GeminiWebDriver | weblm-driver 的核心類別，實作 WebLLMDriver 介面 |
 | Browser-in-the-Loop（BitL） | 透過 Playwright 操控瀏覽器存取免費 Gemini |
-| Pyramid Memory | 分層壓縮記憶系統（即時→日→週→月→年），含 namespace 分區 |
+| Pyramid Memory | 分層壓縮記憶系統（即時→日→週→月→年），含 namespace 分區，基於 LanceDB 自建 |
 | NeuroShunter | 協議解析與 context budget 管理引擎 |
 | Reflex Shunting | NeuroShunter 的快速路由機制 |
 | GOLEM_PROTOCOL | Golem 引擎內部通訊格式 |
@@ -280,6 +298,8 @@ constitution.md（最高層級）
 | sync_check | 自動比對 design.md 與 spec 一致性的 MCP Tool |
 | 三層 Fallback | free_llm_query 容錯：weblm-driver（含四級恢復）→ Gemini API → Ollama |
 | 四級恢復 | weblm-driver 內建：refresh-page → reopen-page → restart-browser → rebuild-session |
+| 借力最大化 | 優先採用成熟開源方案，只在核心差異化功能上自建（v1.3 原則） |
+| SimpleMem | 學術論文（arXiv 2601.02553），NeuroShunter 設計參考其 token budget 分配演算法 |
 
 12. 參考連結
 
@@ -288,6 +308,10 @@ constitution.md（最高層級）
 | Project Golem（原始引擎） | https://github.com/Arvincreator/project-golem |
 | Project Golem（新框架 HMM） | https://github.com/RYN6666999/HMM |
 | weblm-driver（super-engine） | https://github.com/RYN6666999/super-engine |
+| FastMCP | https://github.com/punkpeye/fastmcp |
+| @modelcontextprotocol/server-filesystem | https://www.npmjs.com/package/@modelcontextprotocol/server-filesystem |
+| MCP Filesystem Server 原始碼 | https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem |
+| SimpleMem 論文 | https://arxiv.org/html/2601.02553v1 |
 | GitHub Spec Kit | https://github.com/github/spec-kit |
 | Google Stitch SDK | https://www.npmjs.com/package/@google/stitch-sdk |
 | Google Opal | https://opal.withgoogle.com/ |
@@ -299,6 +323,8 @@ constitution.md（最高層級）
 | MCP Specification | https://spec.modelcontextprotocol.io/ |
 
 版本紀錄
+
 - v1.0（2026-04-15）：初版建立
 - v1.1（2026-04-15）：NotebookLM 審查修正——namespace、sync_check、6 新 Tool、ADR 風險緩解
-- v1.2（2026-04-15）：整合 super-engine/weblm-driver——新增 ADR-005、更新架構圖與依賴路徑、更新路線圖預估時間、新增複用優先原則
+- v1.2（2026-04-15）：整合 super-engine/weblm-driver——ADR-005、更新架構圖與依賴路徑、更新路線圖預估時間、新增複用優先原則
+- v1.3（2026-04-15）：混合借力策略——新增 ADR-006（FastMCP + @modelcontextprotocol/server-filesystem）、新增「借力最大化」核心價值、新增 §2.3 借力策略矩陣、更新三層架構圖（FastMCP 框架層 + filesystem server）、刪除 file-read/file-write/file-list 自建工具（改用官方套件）、更新 Tool Registry 加入「來源」欄位、更新檔案結構（index.ts、刪除 file 工具檔案）、Phase 3 工時從 21h 降至 ~14h（總計省 50%）、新增 SimpleMem 參考
