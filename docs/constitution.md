@@ -1,469 +1,681 @@
-# Project Golem: Constitution
-# 專案憲章 v1.0
-# Last updated: 2026-04-15
-# Owner: Arvincreator
-# Repo: https://github.com/Arvincreator/project-golem
 
----
+Project Golem — Constitution v1.1
 
-## 1. 使命與願景 (Mission)
+最後更新：2026-04-15 | 版本：v1.1（NotebookLM 審查修正版）
+倉庫：https://github.com/RYN6666999/HMM
 
-Project Golem 是一個零成本運行的 AI 開發加速器框架。
-透過 MCP (Model Context Protocol) 萬用接口為中樞，
-整合 Google 工具鏈與自學習 Agent，
-建立一個能隨時間成長、知識累積且 Agent 無關的開發環境。
+1. 使命與願景
 
-核心價值觀：
-- MCP 是膠水：所有組件透過標準協議溝通，更換任何 Agent 不需改動引擎。
-- Spec 是防腐劑：拒絕 Vibe Coding，一切開發以規格為準。
-- Memory 是靈魂：系統必須具備長效記憶與自我進化能力。
-- 免費是底線：預設不使用付費 API，優先採用 Browser-in-the-Loop。
+使命：打造一個零成本、模組化、Agent 無關的 AI 開發加速器，讓任何人 clone 後即可用 AI 輔助開發。
 
----
+願景：以 MCP 為膠水、Spec 為護欄、Pyramid Memory 為靈魂，串聯免費 LLM、Google 工具鏈與自主學習 Agent，形成持續進化的開發生態。
 
-## 2. 系統架構 (Architecture)
+核心價值：
 
-### 2.1 三層架構總覽
+- MCP 為核心：所有模組只透過 MCP Tool 介面溝通，Agent 可自由替換。
+- 學習迴圈為靈魂：系統從每次任務中累積經驗，越用越強。
+- Spec 驅動開發：先寫規格再寫程式碼，杜絕 vibe coding。
+- 零成本優先：預設全部免費（Browser-in-the-Loop + Ollama），付費為加速選項。
 
-Agent Layer（Hermes / Claude Code / OpenCode / Gemini CLI）
-        |
-        | MCP Protocol
-        v
-MCP Universal Server
-  - Golem Engine（Browser-in-the-Loop, Pyramid Memory, NeuroShunter）
-  - Google Tools（Stitch SDK, NotebookLM CLI, Firebase）
-  - External Tools（CLI-Anything, OpenCode, GitHub, File System）
-        |
-        v
-Infrastructure（GitHub CI/CD, Docker, Firebase）
+2. 系統架構
 
-### 2.2 四個閉環
+2.1 三層架構
 
-閉環 1 - 學習迴圈（自動，最高頻）：
-Hermes 執行任務 → 結果存入 Pyramid Memory → 壓縮（即時到日到週到月到年）→ 下次任務召回經驗 → MCP 注入 LLM context → 產出更好的結果 → 再次存入。
-觸發：每次任務完畢自動觸發。
-價值：越用越聰明，約 40% 效能提升。
+┌─────────────────────────────────────────────┐
+│              Agent Layer                     │
+│  Hermes ∙ Claude Code ∙ OpenCode ∙ Gemini   │
+└──────────────────┬──────────────────────────┘
+                   │ MCP Protocol (JSON-RPC)
+┌──────────────────▼──────────────────────────┐
+│           MCP Universal Server               │
+│  ┌──────────┐ ┌───────────┐ ┌─────────────┐ │
+│  │  Golem   │ │  Google   │ │  External   │ │
+│  │  Engine  │ │  Tools    │ │  Tools      │ │
+│  └──────────┘ └───────────┘ └─────────────┘ │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────┐
+│           Infrastructure                     │
+│  GitHub CI ∙ Docker ∙ Firebase (optional)    │
+└─────────────────────────────────────────────┘
 
-閉環 2 - 設計迭代（半自動，按需）：
-Stitch 產出 design.md → Claude Code 生成 UI 程式碼 → 預覽不滿意 → 回 Stitch screen.edit() 修改 → 更新 design.md → 重新生成 → 滿意為止。
-觸發：UI Review 不通過。
-頻率：每個 UI 模組 2-5 次迭代。
+2.2 四大閉環架構
 
-閉環 3 - Spec 演化（手動，關鍵節點）：
-Spec Kit 產出 spec → 實作中發現遺漏或矛盾 → 回 Spec Kit 更新 → 重新 plan 和 tasks → 繼續實作。
-觸發：實作中遇到 spec 與現實不符。
-價值：Spec 是 living document，保持與程式碼同步。
+flowchart TB
+    NLM["🔬 NotebookLM"] --> SPEC["📋 Spec Kit"]
+    SPEC --> STITCH["🎨 Stitch SDK"]
+    STITCH --> CODE["⌨️ Claude Code / OpenCode"]
+    CODE --> MCP["🔌 MCP Server Core"]
+    MCP --> HERMES["🤖 Hermes Agent"]
+    HERMES --> USER["👤 使用者"]
+    CODE --> GH["📦 GitHub CI/CD"]
+    MCP --- MEMORY["🧠 Pyramid Memory"]
+    MCP --- BITL["🌐 Browser-in-the-Loop"]
+    MCP --- GOOGLE["☁️ Google Tools"]
+    MCP --- CLI["🖥️ CLI-Anything"]
 
-閉環 4 - 知識迴圈（按需，跨專案）：
-遇到未知領域 → 觸發 NotebookLM 研究 → 結果存入 Pyramid Memory → 下次直接召回 → 不需再次研究。
-觸發：Agent 遇到知識盲區。
-價值：知識永久累積，跨專案複用。
+    %% 閉環 1：學習迴圈
+    HERMES -->|"經驗存入 (namespace: task_experience)"| MEMORY
+    MEMORY -->|"經驗召回"| MCP
 
-### 2.3 日常運作模式
+    %% 閉環 2：設計迭代
+    CODE -->|"UI 不滿意"| STITCH
 
-使用者提需求
-  → Hermes 接收 → memory_search 找過去經驗
-    → 有經驗 → 直接執行（閉環 1 快速路徑）
-    → 沒經驗 → free_llm_query 問 Gemini
-      → 需要研究 → NotebookLM（閉環 4）
-      → 需要 UI → Stitch SDK（閉環 2）
-      → 直接回答 → 存入 Memory → 推送給使用者
+    %% 閉環 3：Spec 演化
+    CODE -->|"spec 不足"| SPEC
+    MCP -->|"發現缺陷"| SPEC
 
----
+    %% 閉環 4：知識迴圈
+    HERMES -->|"需要研究"| NLM
+    NLM -->|"研究結果存入 (namespace: research_knowledge)"| MEMORY
 
-## 3. MCP Tool Registry
+    %% 閉環 2 ↔ 3 同步檢查
+    STITCH -.->|"sync_check 觸發"| SPEC
+    SPEC -.->|"sync_check 觸發"| STITCH
 
-### 3.1 工具總表
+閉環 1 — 學習迴圈（Learning Loop）
+觸發條件：Hermes 完成任何任務。流程：Hermes 執行任務 → 結果 + metadata 存入 Pyramid Memory（namespace: task_experience） → 未來相似任務時 memory_search 召回經驗 → 注入 LLM context → 提升輸出品質。頻率：每次任務自動觸發。預期效益：約 40% 效率提升。
 
-P0（最優先）：
-- free_llm_query：透過 Browser-in-the-Loop 存取免費 Gemini，對應 Browser-in-the-Loop 模組
-- memory_store：儲存任務經驗與知識片段，對應 Pyramid Memory
-- memory_search：召回相關經驗與 context，對應 Pyramid Memory
+閉環 2 — 設計迭代（Design Iteration Loop）
+觸發條件：UI 審查不通過。流程：Stitch 產出 design.md → Claude Code 產生 UI 程式碼 → Agent 或人工審查 → 不滿意則呼叫 screen.edit() 回到 Stitch → 匯出更新後的 design.md → 重新生成程式碼。頻率：每個 UI 模組約 2-5 次迭代。新增同步機制：每次 design.md 被 commit，CI 自動呼叫 sync_check 比對 spec 中的 API 端點與 UI 元件名稱，不一致時標記 warning。
 
-P1（次優先）：
-- memory_compress：執行記憶層級壓縮，對應 Pyramid Memory
-- parse_protocol：解析 GOLEM_PROTOCOL 結構化協議，對應 NeuroShunter
-- free_notebooklm：自動化操作 NotebookLM 進行研究，對應 CLI-Anything-Web
+閉環 3 — Spec 演化（Spec Evolution Loop）
+觸發條件：實作中發現 spec 缺漏或 API 變更。流程：Claude Code/OpenCode 實作時發現邊界案例或欄位缺失 → 呼叫 spec_update 更新 spec → 任務重新執行 → 程式碼重新實作。頻率：每個模組約 1-3 次更新。新增同步機制：每次 spec-*.md 被 commit，CI 自動呼叫 sync_check 反向比對 design.md，確保雙向一致。
 
-P2（後續）：
-- desktop_control：控制 GIMP/Blender 等桌面軟體，對應 CLI-Anything Desktop
-- design_generate：呼叫 Stitch 產出 UI 設計，對應 Stitch SDK
-- code_generate：驅動編碼引擎實作任務，對應 OpenCode / Gemini API
+閉環 4 — 知識迴圈（Knowledge Loop）
+觸發條件：Hermes 遇到未知領域。流程：Hermes 呼叫 free_notebooklm 進行深度研究 → 研究摘要存入 Pyramid Memory（namespace: research_knowledge） → 未來相同領域查詢時直接召回。頻率：低頻但高價值。
 
-### 3.2 Tool JSON Schema
+3. MCP Tool Registry
 
-free_llm_query:
-  input:
-    prompt: string, required, 要問 Gemini 的問題
-    context: string, optional, 額外 context（如 Memory 召回結果）
-    model: string, optional, default "gemini", 模型選擇 gemini 或 ollama
-  output:
-    content: [{ type: "text", text: string }]
-  errors: AUTH_EXPIRED, RATE_LIMITED, NETWORK_ERROR, BROWSER_CRASH
+3.1 優先級總表
 
-memory_store:
-  input:
-    data: string, required, 要儲存的內容
-    metadata: object, optional, 標籤、來源、時間戳等
-    tier: number, optional, default 0, 存入層級 0-4
-  output:
-    id: string, 儲存後的記憶 ID
-    tier: number, 實際存入的層級
-  errors: STORAGE_FULL, WRITE_ERROR
+| 優先級 | Tool 名稱 | 說明 | 核心引擎 |
+|--------|-----------|------|----------|
+| P0 | free_llm_query | 免費 LLM 查詢 | Browser-in-the-Loop |
+| P0 | memory_store | 儲存記憶 | Pyramid Memory |
+| P0 | memory_search | 搜尋記憶 | Pyramid Memory |
+| P1 | memory_compress | 壓縮記憶 | Pyramid Memory |
+| P1 | parse_protocol | 協議解析 + Context 預算管理 | NeuroShunter |
+| P1 | free_notebooklm | 免費 NotebookLM 研究 | CLI-Anything-Web |
+| P1 | spec_read | 讀取並解析 spec 文件 | 檔案系統 |
+| P1 | spec_update | 更新 spec 並自動 commit | 檔案系統 + Git |
+| P1 | file_read | 讀取任意允許路徑的檔案 | 檔案系統 |
+| P1 | file_write | 寫入任意允許路徑的檔案 | 檔案系統 |
+| P1 | file_list | 列出目錄內容 | 檔案系統 |
+| P1 | sync_check | 比對 design.md 與 spec 一致性 | 檔案系統 |
+| P2 | desktop_control | 桌面操控 | Playwright |
+| P2 | design_generate | UI 設計生成 | Stitch SDK |
+| P2 | code_generate | 程式碼生成 | Gemini API / OpenCode |
 
-memory_search:
-  input:
-    query: string, required, 搜尋關鍵詞或語意查詢
-    limit: number, optional, default 5, 回傳筆數上限
-    tier: number, optional, 限定搜尋層級，不填則全層搜尋
-  output:
-    results: [{ id, data, score, tier, metadata }]
-  errors: SEARCH_ERROR, INDEX_CORRUPT
+3.2 P0 Tool JSON Schema
 
-memory_compress:
-  input:
-    target_tier: number, optional, 壓縮到目標層級，不填則自動判斷
-  output:
-    compressed: number, 被壓縮的記憶筆數
-    from_tier: number
-    to_tier: number
-  errors: COMPRESS_ERROR, NOTHING_TO_COMPRESS
+free_llm_query
 
-parse_protocol:
-  input:
-    raw: string, required, 原始 GOLEM_PROTOCOL 字串
-  output:
-    type: string, REPLY 或 MEMORY 或 ACTION 或 OBSERVE
-    payload: object, 解析後的結構化資料
-  errors: PARSE_ERROR, UNKNOWN_PROTOCOL
+{
+  "name": "free_llm_query",
+  "description": "透過 Browser-in-the-Loop 免費呼叫 Gemini，含三層 fallback",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "prompt": { "type": "string", "description": "查詢內容" },
+      "context": { "type": "string", "description": "附加上下文（選填）" },
+      "model": { "type": "string", "default": "gemini", "enum": ["gemini", "ollama"], "description": "偏好模型（選填）" }
+    },
+    "required": ["prompt"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "content": {
+        "type": "array",
+        "items": { "type": "object", "properties": { "type": { "type": "string" }, "text": { "type": "string" } } }
+      },
+      "provider": { "type": "string", "enum": ["browser", "api", "ollama"], "description": "實際使用的後端" },
+      "latency_ms": { "type": "number" }
+    }
+  },
+  "errors": ["AUTH_EXPIRED", "RATE_LIMITED", "NETWORK_ERROR", "CAPTCHA_DETECTED", "ALL_FALLBACKS_FAILED"]
+}
 
-free_notebooklm:
-  input:
-    action: string, required, create_notebook 或 add_source 或 query 或 generate_mindmap 或 generate_audio
-    query: string, optional, 研究問題（action=query 時必填）
-    sources: array, optional, 來源 URL 列表（action=add_source 時必填）
-  output:
-    result: string, 研究摘要或 mindmap 或 audio URL
-    citations: array, 引用來源列表
-  errors: AUTH_EXPIRED, NOTEBOOK_NOT_FOUND, SOURCE_LIMIT_EXCEEDED
+memory_store
 
-desktop_control:
-  input:
-    app: string, required, 目標軟體 gimp 或 blender 或 libreoffice 或 drawio
-    action: string, required, 執行動作
-    params: object, optional, 動作參數
-  output:
-    result: string, 執行結果或產出檔案路徑
-  errors: APP_NOT_FOUND, ACTION_FAILED, CLI_NOT_INSTALLED
+{
+  "name": "memory_store",
+  "description": "將記憶存入 Pyramid Memory，按 namespace 分區",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "content": { "type": "string", "description": "記憶內容" },
+      "namespace": { "type": "string", "enum": ["task_experience", "research_knowledge", "design_decision"], "description": "記憶分區（必填）" },
+      "tags": { "type": "array", "items": { "type": "string" }, "description": "標籤（選填）" },
+      "metadata": { "type": "object", "description": "附加 metadata（選填）" }
+    },
+    "required": ["content", "namespace"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "string" },
+      "stored_at": { "type": "string", "format": "date-time" },
+      "namespace": { "type": "string" },
+      "token_count": { "type": "number" }
+    }
+  },
+  "errors": ["STORAGE_FULL", "INVALID_NAMESPACE", "WRITE_ERROR"]
+}
 
-design_generate:
-  input:
-    prompt: string, required, UI 設計描述
-    device: string, optional, default DESKTOP, 可選 MOBILE DESKTOP TABLET AGNOSTIC
-    project_id: string, optional, Stitch 專案 ID 不填則建新專案
-  output:
-    html_url: string, HTML 下載 URL
-    image_url: string, 截圖下載 URL
-    screen_id: string, Stitch Screen ID
-  errors: AUTH_FAILED, RATE_LIMITED, GENERATION_FAILED
+memory_search
 
-code_generate:
-  input:
-    spec_path: string, required, spec 文件路徑
-    task_id: string, required, 要實作的 task 編號
-    design_path: string, optional, design.md 路徑
-  output:
-    files: array, 產出或修改的檔案路徑列表
-    summary: string, 實作摘要
-  errors: SPEC_NOT_FOUND, TASK_AMBIGUOUS, GENERATION_FAILED
+{
+  "name": "memory_search",
+  "description": "搜尋 Pyramid Memory，支援 namespace 過濾",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string", "description": "搜尋查詢" },
+      "namespace": { "type": "string", "enum": ["task_experience", "research_knowledge", "design_decision", "all"], "default": "all", "description": "限定搜尋分區（選填）" },
+      "top_k": { "type": "number", "default": 5, "description": "回傳筆數" },
+      "min_relevance": { "type": "number", "default": 0.7, "description": "最低相關性閾值" }
+    },
+    "required": ["query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "results": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "content": { "type": "string" },
+            "namespace": { "type": "string" },
+            "relevance": { "type": "number" },
+            "token_count": { "type": "number" },
+            "created_at": { "type": "string", "format": "date-time" },
+            "compression_level": { "type": "string", "enum": ["instant", "day", "week", "month", "year"] }
+          }
+        }
+      },
+      "total_tokens": { "type": "number" }
+    }
+  },
+  "errors": ["QUERY_TOO_LONG", "INDEX_CORRUPTED", "READ_ERROR"]
+}
 
----
+3.3 P1 Tool JSON Schema
 
-## 4. 建築決策紀錄 (ADR)
+memory_compress
 
-### ADR-001：Hermes 作為補強而非取代 Golem
+{
+  "name": "memory_compress",
+  "description": "依時間階層壓縮 Pyramid Memory，按 namespace 分別執行",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "namespace": { "type": "string", "enum": ["task_experience", "research_knowledge", "design_decision", "all"], "default": "all" },
+      "target_level": { "type": "string", "enum": ["day", "week", "month", "year"], "description": "目標壓縮層級" },
+      "dry_run": { "type": "boolean", "default": false, "description": "預覽壓縮結果而不執行" }
+    },
+    "required": ["target_level"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "compressed_count": { "type": "number" },
+      "before_tokens": { "type": "number" },
+      "after_tokens": { "type": "number" },
+      "compression_ratio": { "type": "number" },
+      "namespace": { "type": "string" }
+    }
+  },
+  "errors": ["NOTHING_TO_COMPRESS", "COMPRESSION_FAILED", "INVALID_NAMESPACE"]
+}
 
-背景：
-Hermes Agent（42K stars, Python）擁有自學習迴圈、200+ 模型、Sub-agent、排程。
-Golem Engine（Node.js）擁有 Browser-in-the-Loop、Pyramid Memory、NeuroShunter、Dashboard。
+parse_protocol
 
-考慮過的選項：
-A. 完全用 Hermes 取代 Golem — 單一系統、社群大，但失去免費 Gemini、Pyramid Memory、Dashboard
-B. 混合架構（MCP 橋接）— 互補各取所長，但雙系統維護成本
-C. 只用 Golem 加 Hermes Skill — 單一系統，但工程量巨大、失去 Hermes 社群更新
+{
+  "name": "parse_protocol",
+  "description": "NeuroShunter 協議解析，含 context budget 管理",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "input": { "type": "string", "description": "原始輸入" },
+      "context_sources": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "source": { "type": "string", "enum": ["conversation", "task_memory", "research_memory", "spec", "design"] },
+            "content": { "type": "string" },
+            "token_count": { "type": "number" }
+          }
+        },
+        "description": "可用上下文來源（選填）"
+      },
+      "context_budget": { "type": "number", "default": 100000, "description": "Context token 預算（預設為模型 window 的 80%）" }
+    },
+    "required": ["input"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "parsed_intent": { "type": "string" },
+      "selected_tools": { "type": "array", "items": { "type": "string" } },
+      "assembled_context": { "type": "string", "description": "經裁剪後的合併上下文" },
+      "budget_usage": {
+        "type": "object",
+        "properties": {
+          "total_budget": { "type": "number" },
+          "used": { "type": "number" },
+          "breakdown": { "type": "object", "description": "各來源佔用 token 數" },
+          "truncated_sources": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  },
+  "errors": ["PARSE_FAILED", "CONTEXT_OVERFLOW", "UNKNOWN_PROTOCOL"]
+}
 
-決策：選項 B — 混合架構。
+free_notebooklm
 
-理由：
-- Golem 的 BitL 提供免費 Gemini（1M+ tokens），Hermes 無此能力，這是零成本底線的關鍵。
-- Pyramid Memory（50 年 / 3MB）是 Hermes SQLite FTS5 無法替代的。
-- Hermes 的自學習迴圈（40% 效能提升）是 Golem 手動 /learn 無法比擬的。
-- MCP 統一介面降低雙系統耦合。
+{
+  "name": "free_notebooklm",
+  "description": "透過 CLI-Anything-Web 呼叫 NotebookLM 進行深度研究",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string", "description": "研究問題" },
+      "sources": { "type": "array", "items": { "type": "string" }, "description": "參考來源 URL 或文字（選填）" },
+      "notebook_id": { "type": "string", "description": "既有 notebook ID（選填）" }
+    },
+    "required": ["query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "summary": { "type": "string" },
+      "key_findings": { "type": "array", "items": { "type": "string" } },
+      "notebook_id": { "type": "string" },
+      "token_count": { "type": "number" }
+    }
+  },
+  "errors": ["AUTH_EXPIRED", "NOTEBOOK_NOT_FOUND", "RESEARCH_TIMEOUT"]
+}
+
+spec_read
+
+{
+  "name": "spec_read",
+  "description": "讀取並解析 spec 文件，回傳結構化內容",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "spec_path": { "type": "string", "description": "spec 檔案路徑（如 docs/spec-mcp-server.md）" },
+      "section": { "type": "string", "description": "指定章節名稱（選填，不填則回傳全部）" }
+    },
+    "required": ["spec_path"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "title": { "type": "string" },
+      "sections": { "type": "array", "items": { "type": "object", "properties": { "heading": { "type": "string" }, "content": { "type": "string" }, "token_count": { "type": "number" } } } },
+      "tools_defined": { "type": "array", "items": { "type": "string" } },
+      "acceptance_criteria": { "type": "array", "items": { "type": "string" } },
+      "total_token_count": { "type": "number" }
+    }
+  },
+  "errors": ["FILE_NOT_FOUND", "PARSE_ERROR", "SECTION_NOT_FOUND"]
+}
+
+spec_update
+
+{
+  "name": "spec_update",
+  "description": "更新 spec 文件指定章節並自動 commit",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "spec_path": { "type": "string", "description": "spec 檔案路徑" },
+      "section": { "type": "string", "description": "要更新的章節名稱" },
+      "new_content": { "type": "string", "description": "新內容" },
+      "commit_message": { "type": "string", "description": "commit 訊息（選填，自動生成）" }
+    },
+    "required": ["spec_path", "section", "new_content"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "updated": { "type": "boolean" },
+      "commit_sha": { "type": "string" },
+      "diff_summary": { "type": "string" }
+    }
+  },
+  "errors": ["FILE_NOT_FOUND", "SECTION_NOT_FOUND", "GIT_COMMIT_FAILED", "PERMISSION_DENIED"]
+}
+
+file_read
+
+{
+  "name": "file_read",
+  "description": "讀取允許路徑內的檔案",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string", "description": "檔案路徑（相對於 repo 根目錄）" },
+      "encoding": { "type": "string", "default": "utf-8" }
+    },
+    "required": ["path"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "content": { "type": "string" },
+      "size_bytes": { "type": "number" },
+      "token_count": { "type": "number" }
+    }
+  },
+  "errors": ["FILE_NOT_FOUND", "PERMISSION_DENIED", "PATH_NOT_ALLOWED", "FILE_TOO_LARGE"]
+}
+
+file_write
+
+{
+  "name": "file_write",
+  "description": "寫入允許路徑內的檔案",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string", "description": "檔案路徑（相對於 repo 根目錄）" },
+      "content": { "type": "string", "description": "檔案內容" },
+      "create_dirs": { "type": "boolean", "default": true, "description": "自動建立父目錄" },
+      "overwrite": { "type": "boolean", "default": false, "description": "是否覆蓋既有檔案" }
+    },
+    "required": ["path", "content"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "written": { "type": "boolean" },
+      "size_bytes": { "type": "number" },
+      "path": { "type": "string" }
+    }
+  },
+  "errors": ["PERMISSION_DENIED", "PATH_NOT_ALLOWED", "FILE_EXISTS", "WRITE_ERROR"]
+}
+
+file_list
+
+{
+  "name": "file_list",
+  "description": "列出允許路徑內的目錄內容",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string", "default": ".", "description": "目錄路徑（相對於 repo 根目錄）" },
+      "recursive": { "type": "boolean", "default": false },
+      "pattern": { "type": "string", "description": "glob 過濾模式（選填，如 *.md）" }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "entries": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "type": { "type": "string", "enum": ["file", "directory"] },
+            "size_bytes": { "type": "number" },
+            "modified_at": { "type": "string", "format": "date-time" }
+          }
+        }
+      },
+      "total_count": { "type": "number" }
+    }
+  },
+  "errors": ["DIRECTORY_NOT_FOUND", "PERMISSION_DENIED", "PATH_NOT_ALLOWED"]
+}
+
+sync_check
+
+{
+  "name": "sync_check",
+  "description": "比對 design.md 與 spec 文件的一致性，回報差異",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "design_path": { "type": "string", "default": "design/design.md" },
+      "spec_path": { "type": "string", "default": "docs/spec-mcp-server.md" }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "in_sync": { "type": "boolean" },
+      "mismatches": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "item": { "type": "string", "description": "不一致的端點或元件名稱" },
+            "in_design": { "type": "string" },
+            "in_spec": { "type": "string" },
+            "suggestion": { "type": "string" }
+          }
+        }
+      },
+      "design_only": { "type": "array", "items": { "type": "string" }, "description": "只在 design 中出現的項目" },
+      "spec_only": { "type": "array", "items": { "type": "string" }, "description": "只在 spec 中出現的項目" }
+    }
+  },
+  "errors": ["FILE_NOT_FOUND", "PARSE_ERROR"]
+}
+
+3.4 安全性設定
+
+所有 file_* 工具在 mcp-config.json 中設定允許路徑：
+
+{
+  "file_security": {
+    "allowed_paths": [
+      "./docs/",
+      "./mcp-server/",
+      "./design/",
+      "./knowledge/",
+      "./agent-config/",
+      "./scripts/",
+      "./src/",
+      "./packages/",
+      "./test/"
+    ],
+    "denied_patterns": [
+      "**/.env",
+      "*/.key",
+      "*/.pem",
+      "**/node_modules/",
+      "**/.git/"
+    ],
+    "max_file_size_bytes": 1048576
+  }
+}
+
+4. 架構決策記錄（ADR）
+
+ADR-001：混合架構 — Golem Engine + Hermes Agent
+
+狀態：已採納
+
+背景：需要決定 Hermes Agent 的角色——完全取代 Golem Engine，還是作為補強。
+
+備選方案：
+A) 完全用 Hermes 取代 Golem — 簡化架構但失去 BitL 免費 LLM 與 Pyramid Memory 壓縮。
+B) 混合架構：Golem 負責核心引擎（BitL、Memory、NeuroShunter），Hermes 負責任務排程與自學習迴圈 — 各取所長。
+C) 只用 Golem 不加 Hermes — 缺少成熟的 Agent 框架（session 管理、cron、dashboard）。
+
+決策：選擇 B。
+
+理由：Golem BitL 提供免費 Gemini（$0），Pyramid Memory 壓縮比極高（~3 MB / 50 年），這兩個能力 Hermes 沒有。Hermes 的 Dashboard、Cron、Session 管理、150+ 設定項則是 Golem 缺乏的。透過 MCP 介面組合兩者，每個都只做自己最強的事。
 
 風險與緩解：
-- 雙系統版本不同步 → MCP 介面版本鎖定，兩側獨立升級。
-- 記憶系統重疊 → Hermes FTS5 負責短期快速搜尋，Golem Pyramid 負責長期壓縮，職責切分。
 
-### ADR-002：Stitch 優先選用官方 SDK
+風險 A — Browser-in-the-Loop 延遲與脆弱性：多層鏈路（MCP → Node.js → Playwright → 瀏覽器 → Google → 擷取結果）任何一環斷裂都導致失敗。緩解：free_llm_query 實作三層 fallback。第一層：Playwright 失敗時自動重試一次（含重新載入頁面）。第二層：切換到 Gemini API 免費額度（每分鐘 15 次、每日 1500 次）。第三層：切換到本地 Ollama。回應中附帶 provider 欄位標示實際使用的後端。
 
-考慮過的選項：
-A. 官方 @google/stitch-sdk — 穩定性高，API Key 認證
-B. CLI-Anything-Web cli-web-stitch — 穩定性中，逆向工程可能變動
-C. Stitch MCP Proxy — 穩定性高，API Key 認證
+風險 B — Context window 溢出：同時載入對話、記憶、spec、研究報告可能超過模型限制。緩解：parse_protocol（NeuroShunter）內建 context budget 管理。每次呼叫 LLM 前計算各來源 token 數，按優先級分配（當前對話 > task_memory > spec 摘要 > research_knowledge），超過預算（模型 window 的 80%）時低優先級來源被截斷。memory_search 回傳 token_count 供 NeuroShunter 計算。
 
-決策：A 為主要路徑，B 為 fallback。
+**風險 C —「clone 到可用   → 功能開發（如 feature/free-llm-query）
+spec/     → 規格撰寫（如 spec/mcp-server）
+hotfix/    → 緊急修復
 
-理由：官方 SDK 有版本管理、錯誤碼定義、原生 JSON 輸出。逆向工程隨時可能壞掉。
+6.2 Commit 訊息格式
 
-### ADR-003：Spec-Driven Development (SDD)
+(): 
 
-決策：使用 GitHub Spec Kit，每個模組先寫 spec 再寫 code。
-
-理由：
-- Spec 是 AI Agent 最好的 context。
-- 提供結構化流程（constitution → specify → plan → tasks → implement）。
-- 開源社群貢獻有明確依據。
-- 閉環 3 確保 spec 不會過時。
-
-### ADR-004：零成本優先 + Opal 排除
-
-決策：
-- Browser-in-the-Loop 作為免費 LLM 主要來源。
-- Ollama 本地模型作為離線備援。
-- Opal 定位為 Phase 0 白板工具，不進入自動化 pipeline。
-
-Opal 排除理由：
-- 沒有公開 API。
-- 產出為 Google 託管連結，無法匯出。
-- 僅限美國地區。
-- 其價值在「快速驗證邏輯」，手動 30 分鐘的事，不需要自動化。
-
----
-
-## 5. 檔案結構映射
-
-### 5.1 現況與目標
-
-已存在：
-- apps/runtime/ — Golem Engine 核心運行環境
-- apps/dashboard/ — Dashboard 啟動器（Phase 4 用 Stitch 重新設計）
-- src/ — Brain / Memory / Skills / Managers 核心邏輯
-- web-dashboard/ — Web UI 與 API 路由（Phase 4 重構）
-- packages/ — security / memory / protocol facade（被 MCP Server 引用）
-- infra/ — 架構邊界檢查 arch:check（CI 繼續使用）
-- docs/ — 既有文件（AGENTS.md、架構藍圖等）
-- scripts/ — setup.sh 等
-- personas/ — 多人格管理
-- data/ — 資料檔
-- test/bridges/ — 測試檔
-
-待建立：
-- mcp-server/ — MCP 核心中樞
-- mcp-server/index.js — MCP Server 進入點
-- mcp-server/golem-engine/ — browser-loop.js, pyramid-memory.js, neuro-shunter.js
-- mcp-server/tools/ — stitch.js, notebooklm.js, cli-anything.js, opencode-bridge.js
-- mcp-server/mcp-config.json — MCP Server 統一組態
-- design/ — Stitch 產出的 design.md 與截圖
-- design/stitch-prompts/ — Stitch 提示詞模板
-- knowledge/ — NotebookLM 產出的研究報告
-- knowledge/research-template.md — 研究模板
-- agent-config/ — Agent 設定檔目錄
-- agent-config/hermes-skill/ — Hermes 技能定義
-- agent-config/CLAUDE.md — Claude Code context 規則
-- .github/workflows/ci.yml — CI pipeline（如需更新）
-- .env.example — 環境變數模板
-
-### 5.2 關鍵依賴關係
-
-mcp-server/golem-engine/browser-loop.js
-  呼叫 → packages/protocol/ (ProtocolFormatter)
-  呼叫 → apps/runtime/ (Playwright session)
-
-mcp-server/golem-engine/pyramid-memory.js
-  呼叫 → packages/memory/ (LanceDBProDriver, ExperienceMemory)
-
-mcp-server/golem-engine/neuro-shunter.js
-  呼叫 → packages/protocol/ (NeuroShunter, ResponseExtractor)
-
-mcp-server/tools/stitch.js
-  呼叫 → @google/stitch-sdk (外部 npm 套件)
-
-mcp-server/tools/notebooklm.js
-  呼叫 → cli-web-notebooklm (外部 Python CLI)
-
----
-
-## 6. 開發流程與標準
-
-### 6.1 Git 分支策略
-
-- main — 穩定版，僅透過 PR 合入
-- develop — 整合分支
-- feature/<module-name> — 功能分支
-- spec/<module-name> — spec 撰寫分支
-
-### 6.2 Commit 訊息規範
-
-格式：<type>(<scope>): <description>
-type: feat, fix, spec, docs, refactor, test, ci
-scope: mcp-server, browser-loop, pyramid-memory, neuro-shunter, dashboard, stitch 等
+type: feat | fix | docs | spec | design | refactor | test | ci | chore
+scope: mcp-server | golem-engine | dashboard | memory | hermes | stitch | ci
 
 範例：
-- spec(mcp-server): add free_llm_query tool definition
-- feat(browser-loop): implement Gemini web auto-login
-- test(pyramid-memory): add tier compression unit tests
-- docs(constitution): v1.0 finalized with 4 closed-loops
+feat(mcp-server): implement free_llm_query with 3-tier fallback
+spec(mcp-server): add memory_store JSON schema
+docs(constitution): v1.1 add namespace and sync_check
+design(dashboard): initial Stitch-generated layout
+ci: add GitHub Actions workflow
 
-### 6.3 CI Pipeline
+6.3 CI Pipeline
 
-觸發條件：PR 合併至 develop 或 main。
-執行內容：npm run arch:check（架構邊界）→ npm test（單元測試）→ npm run test:integration（整合測試）。
+每次 push 或 PR 到 main / develop 時自動執行：
 
----
+1. npm ci — 安裝依賴
+2. npm run lint — 程式碼檢查
+3. npm run test:unit — 單元測試
+4. npm run test:integration — 整合測試（含 MCP Tool 呼叫）
+5. npm run arch:check — 架構邊界檢查（infra/）
+6. sync_check — 比對 design.md 與 spec 一致性（Phase 2 後啟用）
 
-## 7. 非功能性需求 (NFR)
+7. 非功能性需求（NFR）
 
-- 啟動時間：clone 到可用 < 5 分鐘
-- MCP Server 記憶體占用：< 512 MB RAM
-- free_llm_query 回應延遲：< 30 秒（含 Browser-in-the-Loop 頁面載入）
-- memory_search 回應延遲：< 100 毫秒（10K+ 筆記憶）
-- 核心模組測試覆蓋率：> 80%
-- 長期記憶容量：約 3 MB / 50 年（Pyramid Memory 壓縮後）
-- 文件語言：繁體中文為主，程式碼註解英文
-- 授權：MIT License
-- 月運行成本（預設）：$0
+| 項目 | 指標 |
+|------|------|
+| 啟動時間（Docker） | clone → docker compose up → 可用  80% |
+| 長期記憶容量 | ≈ 3 MB / 50 年（Pyramid Memory 壓縮後） |
+| 文件語言 | 繁體中文（主）+ 英文（README、程式碼註解） |
+| 授權 | MIT |
+| 月成本（免費方案） | $0 |
 
----
+8. 路線圖
 
-## 8. 路線圖與進度
-
-Phase 0 — 基礎建設：
-- [x] Golem 引擎拆解與移植（BitL, Pyramid Memory, NeuroShunter, Security, Skills）
+Phase 0 — 基礎建設
+- [x] Golem 引擎拆解與移植
 - [x] MCP 萬用接口基礎實作
 - [x] GitHub repo 建立
-- [x] Web Dashboard 可運行
-- [x] Pyramid Memory 5 層壓縮系統可運行
-- [x] packages/ facade 建立（security, memory, protocol）
-- [x] 架構邊界檢查 npm run arch:check 可運行
-- [ ] constitution.md 定稿 ← 目前在這裡
-- [ ] system-flow.md 推上 repo
+- [x] constitution.md v1.0
+- [x] system-flow.md
+- [x] NotebookLM 架構審查
+- [x] constitution.md v1.1（本次修正）
+- [ ] 推送 v1.1 至 GitHub ← 目前此處
 
-Phase 1 — 規格撰寫：
-- [ ] Spec Kit 初始化
-- [ ] /speckit.constitution 讀取 constitution.md
+Phase 1 — 規格撰寫
+- [ ] Spec Kit 初始化（specify init . --ai claude）
 - [ ] docs/spec-mcp-server.md 撰寫
-- [ ] /speckit.plan + /speckit.tasks 產出
+- [ ] 實作計畫與任務清單產出
 
-Phase 2 — UI 設計：
-- [ ] Stitch API Key 取得
-- [ ] Dashboard UI 重新設計
-- [ ] design/design.md 產出
-- [ ] agent-config/CLAUDE.md 建立
+Phase 2 — UI 設計
+- [ ] Stitch Dashboard 設計
+- [ ] design/design.md 匯出
+- [ ] 視覺稿確認
 
-Phase 3 — MCP Server Core 實作：
-- [ ] free_llm_query 完整實作與測試
-- [ ] memory_store / memory_search 完整實作與測試
-- [ ] parse_protocol 實作
-- [ ] mcp-server/index.js 可被外部 Agent 呼叫
-- [ ] CI pipeline 建立
+Phase 3 — MCP Server Core 實作
+- [ ] free_llm_query（含三層 fallback）
+- [ ] memory_store / memory_search（含 namespace）
+- [ ] memory_compress（按 namespace 分別壓縮）
+- [ ] parse_protocol（含 context budget）
+- [ ] file_read / file_write / file_list
+- [ ] spec_read / spec_update
+- [ ] sync_check
+- [ ] 主入口 index.js
+- [ ] Dockerfile 初版
+- [ ] 單元測試 > 80%
 
-Phase 4 — Google 工具鏈整合：
-- [ ] design_generate（Stitch SDK）整合
-- [ ] free_notebooklm（CLI-Anything-Web）整合
-- [ ] code_generate（Gemini API / OpenCode）整合
-- [ ] desktop_control（CLI-Anything Desktop）整合
+Phase 4 — Google 工具鏈整合
+- [ ] design_generate（Stitch SDK）
+- [ ] free_notebooklm（CLI-Anything-Web）
+- [ ] code_generate（Gemini API）
 
-Phase 5 — Agent 補強：
+Phase 5 — Agent 增強
 - [ ] Hermes Agent 接入 MCP Server
-- [ ] 雙記憶體系統啟用（Hermes FTS5 短期 + Golem Pyramid 長期）
-- [ ] 自學習迴圈驗證
-- [ ] 自然語言排程啟用
+- [ ] Hermes Skill 定義（golem-engine/SKILL.md）
+- [ ] 學習迴圈驗證（完成任務 → 記憶 → 召回 → 改善）
 
-Phase 6 — 開源與社群：
-- [ ] scripts/init.sh 一鍵初始化腳本
-- [ ] README.md 重寫
-- [ ] .env.example 環境變數模板
-- [ ] CONTRIBUTING.md 貢獻指南
-- [ ] Starter Template 可被 clone 並 5 分鐘內跑起來
+Phase 6 — 開源釋出
+- [ ] docker-compose.yml 完善
+- [ ] scripts/init.sh 一鍵啟動
+- [ ] README.md 重寫（含快速入門）
+- [ ] CONTRIBUTING.md
+- [ ] .env.example
+- [ ] GitHub Actions CI 完整配置
 
----
+9. 成本矩陣
 
-## 9. 成本預算
+| 項目 | 免費方案 | 付費方案 |
+|------|---------|---------|
+| LLM（Gemini） | Browser-in-the-Loop $0 | Gemini API ~$7/M tokens |
+| LLM（Claude） | — | Claude API ~$15/M tokens |
+| LLM（本地） | Ollama $0 | — |
+| UI 設計 | Stitch 免費額度 $0 | — |
+| 知識庫 | NotebookLM 免費 $0 | NotebookLM Plus ~$20/月 |
+| 程式碼託管 | GitHub Free $0 | GitHub Pro $4/月 |
+| Agent | Hermes 免費 $0 | — |
+| 雲端運行 | GitHub Codespaces 120h/月 $0 | VPS $5-20/月 |
+| 合計 | $0/月 | $24-51/月 |
 
-免費方案（預設）：
-- Golem Engine: $0 (MIT)
-- Hermes Agent: $0 (MIT)
-- LLM Gemini: $0 (Browser-in-the-Loop)
-- LLM 本地: $0 (Ollama)
-- NotebookLM: $0 (50 sources)
-- Stitch: $0 (Beta)
-- AI Studio: $0 (每日配額)
-- GitHub: $0 (Public repo)
-- Spec Kit: $0 (MIT)
-- CLI-Anything-Web: $0 (MIT)
-- OpenCode CLI: $0 (MIT)
-- 伺服器: $0 (本機)
-- 總計: $0/月
+10. 文件層級與衝突規則
 
-付費方案（選配）：
-- Gemini API: $7/M tokens
-- NotebookLM Plus: $20/月
-- GitHub Pro: $4/月
-- VPS: $5-20/月
-- 總計: $24-51/月
+constitution.md（最高層級 — 設計原則與架構決策）
+  ├── system-flow.md（系統流程與閉環說明）
+  ├── spec-*.md（各模組規格，遵循 constitution 的 Tool Registry）
+  ├── design.md（UI 設計，須通過 sync_check 與 spec 一致）
+  ├── CLAUDE.md（Claude Code 的 context 規則，引用 constitution）
+  ├── SKILL.md（Hermes 技能定義，引用 constitution 的 Tool 列表）
+  └── README.md（面向外部使用者的快速入門）
 
----
+當任何文件與 constitution.md 衝突時，以 constitution.md 為準。更新 constitution 需經 PR 審查並更新版本號。
 
-## 10. 文件層級與既有文件關係
+11. 詞彙表
 
-constitution.md（本文件）← 最高層級
-  |
-  +-- system-flow.md — 系統程序圖與閉環機制詳解
-  |
-  +-- spec-*.md — 各模組功能規格（Phase 1 產出）
-  |
-  +-- 既有文件（Phase 0 前已存在）：
-      +-- AGENTS.md — AI Agent 使用指南
-      +-- 大型產品架構藍圖.md — apps + packages + infra 結構說明
-      +-- infra/architecture/README.md — 架構治理與 arch:check 規則
-      +-- MCP-使用與開發指南.md — MCP Server 開發細節
-      +-- 記憶系統架構說明.md — Pyramid Memory 技術規格
-      +-- Web-Dashboard-使用說明.md — Dashboard UI 操作手冊
-      +-- 開發者實作指南.md — Skill 與 Golem Protocol 開發
-      +-- 指令說明一覽表.md — Telegram/Discord 指令參考
+| 術語 | 說明 |
+|------|------|
+| MCP | Model Context Protocol — Agent 與工具間的通用通訊協議 |
+| Browser-in-the-Loop（BitL） | 透過 Playwright 操控瀏覽器存取免費 Gemini |
+| Pyramid Memory | 分層壓縮記憶系統（即時→日→週→月→年），含 namespace 分區 |
+| NeuroShunter | 協議解析與 context budget 管理引擎 |
+| Reflex Shunting | NeuroShunter 的快速路由機制，跳過不必要的處理步驟 |
+| GOLEM_PROTOCOL | Golem 引擎內部通訊格式 |
+| SDD | Spec-Driven Development — 先寫規格再寫程式碼 |
+| Namespace | Pyramid Memory 的記憶分區（task_experience / research_knowledge / design_decision） |
+| Context Budget | 每次 LLM 呼叫的 token 分配上限，由 NeuroShunter 管理 |
+| sync_check | 自動比對 design.md 與 spec 文件一致性的 MCP Tool |
+| 三層 Fallback | free_llm_query 的容錯機制：Browser → Gemini API → Ollama |
 
-衝突解決原則：當既有文件與 constitution.md 不一致時，以 constitution.md 為準。
+12. 參考連結
 
----
+| 資源 | 連結 |
+|------|------|
+| Project Golem（原始引擎） | https://github.com/Arvincreator/project-golem |
+| Project Golem（新框架） | https://github.com/RYN6666999/HMM |
+| GitHub Spec Kit | https://github.com/github/spec-kit |
+| Google Stitch SDK | https://www.npmjs.com/package/@google/stitch-sdk |
+| Google Opal | https://opal.withgoogle.com/ |
+| Google AI Studio | https://aistudio.google.com/ |
+| Google NotebookLM | https://notebooklm.google.com/ |
+| Hermes Agent | https://github.com/NousResearch/hermes-agent |
+| OpenCode CLI | https://github.com/nicepkg/opencode |
+| CLI-Anything | https://github.com/nicepkg/cli-anything |
+| MCP Specification | https://spec.modelcontextprotocol.io/ |
 
-## 11. 術語對照表
-
-- MCP (Model Context Protocol): Agent 與工具間的標準通訊協議
-- BitL (Browser-in-the-Loop): 透過 Playwright 操控瀏覽器存取免費 Web AI 服務
-- Pyramid Memory: Golem 的 5 層壓縮記憶系統（即時→日→週→月→年）
-- NeuroShunter: Golem 的結構化協議路由器，解析 GOLEM_PROTOCOL
-- GOLEM_PROTOCOL: Golem 自定義的 LLM 回應格式（REPLY/MEMORY/ACTION/OBSERVE）
-- Reflex Shunting: NeuroShunter 的核心機制，根據協議類型自動分流回應
-- SDD (Spec-Driven Development): 規格驅動開發，先寫 spec 再寫 code
-- Spec Kit: GitHub 開源的 SDD 工具組
-- Stitch: Google AI UI 設計工具，產出 design.md 和 HTML
-- Opal: Google AI 無程式碼工作流建構器（Phase 0 白板工具）
-- CLI-Anything-Web: 將任意網頁應用逆向工程為 Python CLI 的工具
-- FTS5 (Full-Text Search 5): SQLite 全文搜索引擎，Hermes 用於短期記憶檢索
-
----
-
-## 附錄：參考連結
-
-- Project Golem: https://github.com/Arvincreator/project-golem
-- GitHub Spec Kit: https://github.com/github/spec-kit
-- Google Stitch: https://stitch.withgoogle.com/
-- Stitch SDK: https://github.com/google-labs-code/stitch-sdk
-- Google Opal: https://opal.google/
-- Google AI Studio: https://aistudio.google.com/
-- Google NotebookLM: https://notebooklm.google.com/
-- Hermes Agent: https://github.com/nousresearch/hermes-agent
-- OpenCode CLI: https://github.com/opencode-ai/opencode
-- CLI-Anything: https://github.com/HKUDS/CLI-Anything
-- CLI-Anything-Web: https://github.com/ItamarZand88/CLI-Anything-WEB
-- MCP Specification: https://spec.modelcontextprotocol.io/
+版本紀錄
+- v1.0（2026-04-15）：初版建立
+- v1.1（2026-04-15）：依 NotebookLM 審查結果修正——新增 Pyramid Memory namespace 分區、sync_check 閉環同步機制、6 支新 MCP Tool（spec_read / spec_update / file_read / file_write / file_list / sync_check）、ADR-001 三項風險緩解措施、context budget 管理、Docker 啟動時間 NFR、檔案依賴路徑標註、文件層級衝突規則
